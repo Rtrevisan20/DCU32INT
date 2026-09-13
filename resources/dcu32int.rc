@@ -1,0 +1,25 @@
+1 VERSIONINFO
+ FILEVERSION 1,20,1,96
+ PRODUCTVERSION 1,20,1,96
+ FILEOS 0x40004
+ FILETYPE 0x00000001L
+{
+BLOCK "VarFileInfo"
+{
+  VALUE "Translation", 0x0409, 1200
+}
+BLOCK "StringFileInfo"
+{
+  BLOCK "040904B0"
+  {
+    VALUE "CompanyName", "AX"
+    VALUE "FileDescription", "Parser of Delphi 2.0-8.0, 2005-2006 (.net and WIN32), 2007-2010 (WIN32 only), XE (WIN32 only), XE2-XE7 (WIN32,WIN64,OSX32), Kylix 1.0-3.0"
+    VALUE "FileVersion", "1.20.1.96"
+    VALUE "InternalName", "DCU32INT"
+    VALUE "LegalCopyright", "Copyright (c)2000-2015, Alexei E. Hmelnov"
+    VALUE "OriginalFilename", "DCU32INT.EXE"
+    VALUE "ProductName", "DCU32INT"
+    VALUE "ProductVersion", "1.20.1.96"
+  }
+}
+}

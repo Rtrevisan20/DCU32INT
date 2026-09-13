@@ -1,4 +1,11 @@
 unit DCURecs;
+{$IFNDEF FPC}
+{$WARNINGS OFF}
+{$HINTS OFF}
+{$ELSE}
+{$WARNINGS OFF}
+{$NOTES OFF}
+{$ENDIF}
 (*
 The DCU records module of the DCU32INT utility by Alexei Hmelnov.
 It contains classes for representation of DCU declarations and
@@ -8,7 +15,7 @@ E-Mail: alex@icc.ru
 http://hmelnov.icc.ru/DCU/
 ----------------------------------------------------------------------------
 
-See the file "readme.txt" for more details.
+See the file "readme.md" for more details.
 
 ------------------------------------------------------------------------
                              IMPORTANT NOTE:
@@ -27,10 +34,12 @@ freely, subject to the following restrictions:
 *)
 interface
 
+{$IFNDEF FPC}
 {$IFNDEF VER90}
  {$IFNDEF VER100}
   {$REALCOMPATIBILITY ON}
  {$ENDIF}
+{$ENDIF}
 {$ENDIF}
 
 uses
@@ -2410,7 +2419,7 @@ end ;
 { TMethodDecl. }
 constructor TMethodDecl.Create(LK: TDeclListKind);
 const
-  cS12 = [0,2,4,8,$10,$18,$20,$80,$84,Ord(' '),Ord('!'),Ord('a')];
+  cS12 = [0,2,4,8,$10,$18,$20,$80,$84,Ord('!'),Ord('a')];
   cS12a = cS12+[1];
   cS12b = cS12a+[$28,$38];
   cS12c = cS12b+[$42,$22,$9];
@@ -2819,7 +2828,7 @@ begin
   NeedVal := true;
   if CurUnit.Ver>verD4 then begin
     Kind := ReadUIndex;
-    if (Kind<0)or(Kind>5)or(Kind=5)and not((CurUnit.Ver>=verD2009)and(CurUnit.Ver<verK1)) then
+    if (Kind>5)or(Kind=5)and not((CurUnit.Ver>=verD2009)and(CurUnit.Ver<verK1)) then
       DCUErrorFmt('Unknown const kind: #%d',[Kind]);
     if (CurUnit.Ver>=verD_XE2)and(CurUnit.Ver<verK1) then
       NeedVal := Kind<>4{Pointer - Nil};
@@ -4121,7 +4130,7 @@ begin
     if (NameTbl<>Nil)and(NameTbl.Count>0{Paranoic}) then begin
       V0 := TConstDecl(NameTbl[0]).Value.Val;
       Dec(V,V0);
-      if (V>=0)and(V<NameTbl.Count) then
+      if (V<NameTbl.Count) then
         C := TConstDecl(NameTbl[V]);
      end
     else begin
@@ -4244,8 +4253,10 @@ begin
         end ;
       end ;
     end ;
+    {$IFNDEF FPC}
     SizeOf(Extended): E := Extended(DP^);
     SizeOf(Real): E := Real(DP^);
+    {$ENDIF}
   else
     Ok := false;
   end ;
@@ -4835,7 +4846,7 @@ end ;
 
 function TRecBaseDef.ShowFieldValues(DP: Pointer; DS: Cardinal): integer {Size used};
 { Attention: records with variants may be incorrectly shown
-  (see readme.txt for details)}
+  (see readme.md for details)}
 var
   Cnt: integer;
   Ofs: integer;
@@ -5826,7 +5837,11 @@ begin
         TSz := CurUnit.GetTypeSize(TLocalDecl(Decl).hDT);
         if TSz<0 then
           TSz := 0; //to fit anywhere
+        {$IFDEF FPC}
+        TLocalDecl(Decl).NDXB := TNDX(PtrUInt(GetObjFldByOfs(TLocalDecl(Decl).NDX{Ofs},TSz{QSz},Pointer(FldUnit))));
+{$ELSE}
         TLocalDecl(TLocalDecl(Decl).NDXB) := GetObjFldByOfs(TLocalDecl(Decl).NDX{Ofs},TSz{QSz},Pointer(FldUnit));
+{$ENDIF}
       end ;
     end ;
     DeclL := DeclL.Next;
@@ -6395,4 +6410,7 @@ begin
 end;
 
 end.
+
+
+
 

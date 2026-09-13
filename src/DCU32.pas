@@ -1,4 +1,11 @@
 unit DCU32;
+{$IFNDEF FPC}
+{$WARNINGS OFF}
+{$HINTS OFF}
+{$ELSE}
+{$WARNINGS OFF}
+{$NOTES OFF}
+{$ENDIF}
 (*
 The DCU parser module of the DCU32INT utility by Alexei Hmelnov.
 (All the DCU data structures are described here and in the DCURecs module)
@@ -7,7 +14,7 @@ E-Mail: alex@icc.ru
 http://hmelnov.icc.ru/DCU/
 ----------------------------------------------------------------------------
 
-See the file "readme.txt" for more details.
+See the file "readme.md" for more details.
 
 ------------------------------------------------------------------------
                              IMPORTANT NOTE:
@@ -31,13 +38,21 @@ uses
   {$IFDEF UNICODE}  AnsiStrings, {$ENDIF}
   SysUtils, Classes, DasmDefs, DCU_In, DCU_Out, FixUp, DCURecs;
 
+{$IFNDEF FPC}
 {$IFNDEF VER90}
  {$IFNDEF VER100}
   {$REALCOMPATIBILITY ON}
  {$ENDIF}
 {$ENDIF}
-{$IFDEF WIN32}
-{$DEFINE WIN}
+{$ENDIF}
+{$IFDEF FPC}
+  {$IFDEF WINDOWS}
+    {$DEFINE WIN}
+  {$ENDIF}
+{$ELSE}
+  {$IFDEF WIN32}
+    {$DEFINE WIN}
+  {$ENDIF}
 {$ENDIF}
 
 const {My own (AX) codes for Delphi/Kylix versions}
@@ -859,6 +874,8 @@ var
 begin
   hUses := 0;
   ImpBase := 0;
+  TR := Nil;
+  RTTISz := 0;
   while Tag = TagRq do
   begin
     UseName := ReadName;
@@ -1623,7 +1640,11 @@ begin
   end;
   Result := GetDCUByName(UI^.Name^.GetStr, FFExt, Ver, FIsMSIL, FPlatform, UI^.Ref.Inf);
   if Result = Nil then
+{$IFDEF FPC}
+    PtrUInt(UI^.U) := PtrUInt(-1)
+{$ELSE}
     integer(UI^.U) := -1
+{$ENDIF}
   else
     UI^.U := Result;
 end;
@@ -4881,4 +4902,6 @@ begin
 end;
 
 end.
+
+
 

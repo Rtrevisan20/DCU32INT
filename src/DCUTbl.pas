@@ -1,4 +1,8 @@
 unit DCUTbl;
+{$IFDEF FPC}
+{$WARNINGS OFF}
+{$NOTES OFF}
+{$ENDIF}
 
 (*
   The table of used units module of the DCU32INT utility by Alexei Hmelnov.
@@ -10,7 +14,7 @@ unit DCUTbl;
   http://hmelnov.icc.ru/DCU/
   ----------------------------------------------------------------------------
 
-  See the file "readme.txt" for more details.
+  See the file "readme.md" for more details.
 
   ------------------------------------------------------------------------
   IMPORTANT NOTE:
@@ -29,8 +33,18 @@ unit DCUTbl;
 *)
 interface
 
+{$IFDEF FPC}
+  {$IFDEF WINDOWS}
+    {$DEFINE WIN}
+  {$ENDIF}
+{$ELSE}
+  {$IFDEF WIN32}
+    {$DEFINE WIN}
+  {$ENDIF}
+{$ENDIF}
+
 uses
-  SysUtils, Classes, DCU32, DCP{$IFDEF Win32}, Windows{$ENDIF};
+  SysUtils, Classes, DCU32, DCP{$IFDEF WIN}, Windows{$ENDIF};
 
 const
   PathSep = {$IFNDEF LINUX}';'{$ELSE}':'{$ENDIF};
@@ -106,7 +120,7 @@ end;
 function GetDelphiLibDir(VerRq: integer; MSILRq: Boolean;
   PlatformRq: TDCUPlatform): String;
 { Delphi LIB directory autodetection }
-{$IFDEF Win32}
+{$IFDEF WIN}
 const
   sRoot = 'RootDir';
   sPlatformDir: array [TDCUPlatform] of String = ('win32', 'win64', 'osx32',
@@ -118,7 +132,7 @@ var
 {$ENDIF}
 begin
   Result := '';
-{$IFDEF Win32}
+{$IFDEF WIN}
   sPath := '';
   sLib := 'Lib';
   case VerRq of
@@ -210,7 +224,7 @@ begin
     if SurePkg then
       Exit;
   end;
-  if not(AnsiLastChar(S)^ in [{$IFNDEF Linux}':', {$ENDIF} DirSep]) then
+  if not CharInSet(AnsiLastChar(S)^, [{$IFNDEF Linux}':', {$ENDIF} DirSep]) then
     S := S + DirSep;
   Result := PathList.Add(S);
 end;
@@ -218,7 +232,7 @@ end;
 procedure FindPackagesAndAddToPathList(const Mask: String);
 var
   SR: TSearchRec;
-  Path, FN, Ext: String;
+  Path, Ext: String;
   lExt: integer;
 begin
   Ext := ExtractFileExt(Mask);
@@ -254,7 +268,7 @@ begin
     i := P;
     while (P <= L) and (DirList[P] <> PathSep) do
     begin
-      if DirList[P] in LeadBytes then
+if CharInSet(DirList[P], LeadBytes) then
         Inc(P);
       Inc(P);
     end;

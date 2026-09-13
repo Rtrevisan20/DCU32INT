@@ -1,4 +1,8 @@
 unit DCU_Out;
+{$IFDEF FPC}
+{$WARNINGS OFF}
+{$NOTES OFF}
+{$ENDIF}
 
 interface
 (*
@@ -9,7 +13,7 @@ E-Mail: alex@icc.ru
 http://hmelnov.icc.ru/DCU/
 ----------------------------------------------------------------------------
 
-See the file "readme.txt" for more details.
+See the file "readme.md" for more details.
 
 ------------------------------------------------------------------------
                              IMPORTANT NOTE:

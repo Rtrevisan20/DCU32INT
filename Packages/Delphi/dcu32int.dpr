@@ -1,5 +1,7 @@
 {$A+,B-,C+,D+,E-,F-,G+,H+,I+,J+,K-,L+,M-,N+,O+,P+,Q-,R-,S-,T-,U-,V+,W-,X+,Y+,Z1}
 {$APPTYPE CONSOLE}
+{$IFDEF FPC}{$MODE DELPHI}{$ENDIF}
+{$IFDEF FPC}{$WARNINGS OFF}{$NOTES OFF}{$ENDIF}
 program dcu32int;
 (*
 The main module of the DCU32INT utility by Alexei Hmelnov.
@@ -8,7 +10,7 @@ E-Mail: alex@icc.ru
 http://hmelnov.icc.ru/DCU/
 ----------------------------------------------------------------------------
 
-See the file "readme.txt" for more details.
+See the file "readme.md" for more details.
 
 ------------------------------------------------------------------------
                              IMPORTANT NOTE:
@@ -42,7 +44,8 @@ uses
   DasmX86 in 'DasmX86.pas',
   DasmMSIL in 'DasmMSIL.pas';
 
-{$R *.res}
+{$IFNDEF FPC}{$R *.res}{$ENDIF}
+{$IFDEF FPC}{$R dcu32int_fpc.res}{$ENDIF}
 
 procedure WriteUsage;
 begin

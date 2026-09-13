@@ -1,5 +1,9 @@
 {$A+,B-,C+,D+,E-,F-,G+,H+,I+,J+,K-,L+,M-,N+,O+,P+,Q-,R-,S-,T-,U-,V+,W-,X+,Y+,Z1}
 unit DCU_In;
+{$IFDEF FPC}
+{$WARNINGS OFF}
+{$NOTES OFF}
+{$ENDIF}
 (*
 The DCU input module of the DCU32INT utility by Alexei Hmelnov.
 ----------------------------------------------------------------------------
@@ -7,7 +11,7 @@ E-Mail: alex@icc.ru
 http://hmelnov.icc.ru/DCU/
 ----------------------------------------------------------------------------
 
-See the file "readme.txt" for more details.
+See the file "readme.md" for more details.
 
 ------------------------------------------------------------------------
                              IMPORTANT NOTE:
@@ -376,6 +380,17 @@ begin
   SkipBlock(L);
 end ;
 
+{$IFDEF FPC}
+function StrLEnd(Str: PAnsiChar; L: Cardinal): PAnsiChar;
+var
+  I: Cardinal;
+begin
+  I := 0;
+  while (I<L) and (Str[I]<>#0) do
+    Inc(I);
+  Result := Str+I;
+end;
+{$ELSE}
 function StrLEnd(Str: PAnsiChar; L: Cardinal): PAnsiChar; assembler;
 asm
         MOV     ECX,EDX
@@ -389,6 +404,7 @@ asm
         MOV     EAX,EDI
         MOV     EDI,EDX
 end;
+{$ENDIF}
 
 function ReadNDXStr: AnsiString;
 //Was observed only in drConstAddInfo records of MSIL
@@ -492,6 +508,15 @@ begin
   end ;
 end ;
 
+{$IFDEF FPC}
+function SAR(L: LongInt; BitCnt: Byte): LongInt; inline;
+begin
+  Result := L shr BitCnt;
+  if L<0 then
+    Result := Result or (LongInt(-1) shl (32-BitCnt));
+end;
+{$ENDIF}
+
 function ReadIndex: LongInt;
 type
   TR4 = packed record
@@ -515,17 +540,25 @@ begin
   B[0] := ReadByte;
   if B[0] and $1=0 then begin
     Result := SB;
+    {$IFDEF FPC}
+    Result := SAR(Result,1);
+    {$ELSE}
     asm
       sar DWORD PTR[Result],1
     end;
+    {$ENDIF}
    end
   else begin
     B[1] := ReadByte;
     if B[0] and $2=0 then begin
       Result := W;
+      {$IFDEF FPC}
+      Result := SAR(Result,2);
+      {$ELSE}
       asm
         sar DWORD PTR[Result],2
       end;
+      {$ENDIF}
      end
     else begin
       B[2] := ReadByte;
@@ -533,17 +566,25 @@ begin
       if B[0] and $4=0 then begin
         RL.i := ShortInt(B[2]);
         Result := L;
+        {$IFDEF FPC}
+        Result := SAR(Result,3);
+        {$ELSE}
         asm
           sar DWORD PTR[Result],3
         end;
+        {$ENDIF}
        end
       else begin
         B[3] := ReadByte;
         if B[0] and $8=0 then begin
           Result := L;
+          {$IFDEF FPC}
+          Result := SAR(Result,4);
+          {$ELSE}
           asm
             sar DWORD PTR[Result],4
           end;
+          {$ENDIF}
          end
         else begin
           B[4] := ReadByte;

@@ -1,4 +1,10 @@
 unit DasmUtil;
+{$IFNDEF FPC}
+{$WARNINGS OFF}
+{$ELSE}
+{$WARNINGS OFF}
+{$NOTES OFF}
+{$ENDIF}
 (*
 The main i80x86 disassembler module of the DCU32INT utility by Alexei Hmelnov.
 ----------------------------------------------------------------------------
@@ -6,7 +12,7 @@ E-Mail: alex@icc.ru
 http://hmelnov.icc.ru/DCU/
 ----------------------------------------------------------------------------
 
-See the file "readme.txt" for more details.
+See the file "readme.md" for more details.
 
 ------------------------------------------------------------------------
                              IMPORTANT NOTE:
@@ -788,7 +794,7 @@ begin
      end ;
    dsPtr6b: begin
        DP1 := DP;
-       Inc(integer(DP1),4);
+       DP1 := PAnsiChar(DP1)+4;
        PutSFmt('$%4.4x:$%8.8x',[Word(DP1^),LongInt(DP^)]);
      end ;
    {dsPtr:
@@ -1031,7 +1037,7 @@ var
   DP: Pointer;
 begin
   DP := PrevCodePtr;
-  Inc(Cardinal(DP),Ofs);
+  DP := PAnsiChar(DP)+Ofs;
   Case hDSize and dsMask of
     dsByte: I := ShortInt(DP^);
     dsWord: I := SmallInt(DP^);
@@ -1106,3 +1112,4 @@ begin
 end ;
 
 end.
+

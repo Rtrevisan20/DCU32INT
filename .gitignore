@@ -63,3 +63,13 @@ __history/
 
 # Castalia statistics file (since XE7 Castalia is distributed with Delphi)
 *.stat
+# Lazarus/FPC generated
+*.ppu
+
+# Lazarus build artifacts
+*.lps
+Compiled/
+backup/
+
+# Project documentation (internal notes, not part of the source)
+AGENTS.md
