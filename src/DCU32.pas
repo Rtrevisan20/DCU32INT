@@ -75,10 +75,11 @@ const {My own (AX) codes for Delphi/Kylix versions}
   verD_XE6 = 19; //XE6
   //verAppMethod=20; //AppMethod
   verD_XE7 = 20; //XE7&AppMethod
+  verD_D13 = 21; //Delphi 13 (Studio 37)
   verK1 = 100; //Kylix 1.0
   verK2 = 101; //Kylix 2.0
   verK3 = 102; //Kylix 3.0
-  MaxDelphiVer = 20;
+  MaxDelphiVer = 21;
 
 type
   TDCUPlatform = (dcuplWin32, dcuplWin64, dcuplOsx32, dcuplIOSEmulator, dcuplIOSDevice, dcuplAndroid);
@@ -105,7 +106,7 @@ const
   drRes = $72{'r'};
   drAsm = $73{'s'}; //Found in D5 Debug versions
   drAssemblySrc = $74{'t'}; //For .net assembly the *.DCP is generated automatically, so the assembly is its source
-  drStop2 = $9F{'џ'}; //!!!
+  drStop2 = $9F{'пїЅ'}; //!!!
   drConst = $25{'%'};
   drResStr = $32{'2'};
   drType = $2A{'*'};
@@ -641,7 +642,7 @@ end;
 
 function TUnit.GetVersionStr: string;
 const
-  verStrDelphi: array[2..MaxDelphiVer] of string = ('2', '3', '4', '5', '6', '7', '8', '2005', '2006', '?2007', '2009', '2010', 'XE', 'XE2', 'XE3', 'XE4', 'XE5', 'XE6', 'XE7');
+  verStrDelphi: array[2..MaxDelphiVer] of string = ('2', '3', '4', '5', '6', '7', '8', '2005', '2006', '?2007', '2009', '2010', 'XE', 'XE2', 'XE3', 'XE4', 'XE5', 'XE6', 'XE7', '13');
   platfStr: array[TDCUPlatform] of string = ('Win32', 'Win64', 'Osx32', 'iOSEmulator', 'iOSDevice', 'Android');
 begin
   if Ver < verK1 then
@@ -3025,7 +3026,7 @@ begin
               break;
          {TStrConstTypeDef.Create;}
             Decl := TStrConstDecl.Create;
-        {//м.б. надо регистрировать в таблице адресов
+        {//пїЅ.пїЅ. пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ
          ReadStr;
          ReadUIndex;
          ReadUIndex;
@@ -4382,6 +4383,39 @@ begin
     $1C00774D:
       begin
         FVer := verD_XE7;
+        FPlatform := dcuplAndroid;
+      //The drCBlock section is missing here, all the memory is in the corresponding
+      //*.o file. Or inline info decoding is required
+      end;
+
+    $2500034D:
+      FVer := verD_D13;
+    $2500234D:
+      begin
+        FVer := verD_D13;
+        FPlatform := dcuplWin64;
+        FPtrSize := 8;
+      end;
+    $2500044D:
+      begin
+        FVer := verD_D13;
+        FPlatform := dcuplOsx32;
+      end;
+    $2500144D:
+      begin
+        FVer := verD_D13;
+        FPlatform := dcuplIOSEmulator;
+      end;
+    $2500764D:
+      begin
+        FVer := verD_D13;
+        FPlatform := dcuplIOSDevice;
+      //The drCBlock section is missing here, all the memory is in the corresponding
+      //*.o file. Or inline info decoding is required
+      end;
+    $2500774D:
+      begin
+        FVer := verD_D13;
         FPlatform := dcuplAndroid;
       //The drCBlock section is missing here, all the memory is in the corresponding
       //*.o file. Or inline info decoding is required

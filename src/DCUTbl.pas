@@ -164,6 +164,8 @@ begin
       sPath := 'SOFTWARE\Embarcadero\BDS\14.0';
     verD_XE7:
       sPath := 'SOFTWARE\Embarcadero\BDS\15.0';
+    verD_D13:
+      sPath := 'SOFTWARE\Embarcadero\BDS\37.0';
   end;
   if sPath = '' then
     Exit;
