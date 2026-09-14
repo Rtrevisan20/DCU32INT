@@ -192,7 +192,7 @@ Os arquivos `.int` (e `.htm`) são **byte-idênticos** entre os binários gerado
 | Lazarus/FPC | 4.8 | ✅ build do `.lpi` limpo |
 | Paridade de output | — | ✅ `.int` **idêntico** nos 5 DCUs de teste reais do Delphi 11 |
 
-> **Nota:** DCUs de Delphi **13 (Studio 37)** ainda **não** são suportados — o magic do 13 (`0x2500034D`) foi identificado, mas as tags novas do formato (ex.: `Unexpected Tag=0x17` em `TConstAddInfoRec`) ainda não foram decodificadas. Ver [AGENTS.md](AGENTS.md) → "Validação por Versão do Delphi".
+> **Nota:** DCUs de Delphi **13 (Studio 37)** ainda **não** são suportados — o magic do 13 (`0x2500034D`) foi identificado, mas as tags novas do formato (ex.: `Unexpected Tag=0x17` em `TConstAddInfoRec`) ainda não foram decodificadas.
 
 ---
 
@@ -226,9 +226,7 @@ Este repositório é um fork com **compilação dual-IDE (Delphi + Lazarus/FPC)*
 - ✅ **Output `.int`/`.htm` idêntico** entre os binários Delphi e FPC.
 - ✅ Builds das IDEs validados pelo usuário (Delphi 11 Architect e Lazarus 4.8).
 - ✅ Sem features descartadas — o utilitário é determinístico e console-puro.
-- ⏳ Suporte a DCUs de Delphi 13 (Studio 37) — em análise (ver AGENTS.md).
-
-> Para o plano de port completo e a lista detalhada de fixes aplicados, ver [AGENTS.md](AGENTS.md).
+- ⏳ Suporte a DCUs de Delphi 13 (Studio 37) — em análise.
 
 ---
 
