@@ -2162,6 +2162,8 @@ begin
   inherited Create;
   hSym := ReadUIndex;
   Index := ReadUIndex;
+  if (CurUnit.Ver >= verD_D13) and (CurUnit.Ver < verK1) then
+    ReadByte; //D13: extra byte after each export (always $00 observed)
 end ;
 
 procedure TExportDecl.Show;
@@ -4216,8 +4218,14 @@ begin
     DCUErrorFmt('Unknown float kind: %d',[B]);
   Kind := TFloatKind(B);
   if Sz<>FloatSz[Kind] then
-    DCUErrorFmt('Float kind and size mismatch: SizeOf()=%d',
-      [GetKindName,Sz]);
+  begin
+  //The DCU stores the real ABI size of the float var; it may differ from the
+  //host's SizeOf (e.g. Real48=6, Extended=10, FPC x64 Extended=16). Only a
+  //size outside every plausible real storage fails.
+    if not (Sz in [4,6,8,10,16]) then
+      DCUErrorFmt('Float kind and size mismatch: %s (%d)',
+        [GetKindName,Sz]);
+  end;
 end ;
 
 function TFloatDef.GetKindName: AnsiString;
@@ -4834,6 +4842,8 @@ begin
       raise;
     end ;
   end ;
+  if (CurUnit.Ver >= verD_D13) and (Tag = drStop) then
+    Tag := drStop1; //D13: nested lists end with a plain stop tag
   if Tag<>drStop1 then
     TagError('Stop Tag');
 end ;
@@ -5976,6 +5986,8 @@ begin
   inherited Create;
   Tag := ReadTag;
   CurUnit.ReadDeclList(dlA6,Args);
+  if (CurUnit.Ver >= verD_D13) and (Tag = drStop) then
+    Tag := drStop1; //D13: nested (dlA6) lists end with a plain stop tag
   if Tag<>drStop1 then
     TagError('Stop Tag');
 end ;
@@ -6051,6 +6063,8 @@ begin
   B1 := ReadByte;
   Tag := ReadTag;
   CurUnit.ReadDeclList(dlA6,Args);
+  if (CurUnit.Ver >= verD_D13) and (Tag = drStop) then
+    Tag := drStop1; //D13: nested (dlA6) lists end with a plain stop tag
   if Tag<>drStop1 then
     TagError('Stop Tag');
 end ;

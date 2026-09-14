@@ -1199,6 +1199,14 @@ creation of the object. }
 begin
   if V > FAddrs.Count then
   begin
+    //Delphi 13 writes forward refs that can jump several slots ahead:
+    //backfill them with Nil placeholders (validated by later address use).
+    if (Ver >= verD_D13) and (Ver < verK1) then
+    begin
+      while FAddrs.Count < V do
+        FAddrs.Add(Nil);
+      Exit;
+    end;
     if V <> FAddrs.Count + 1 then
       DCUErrorFmt('Unexpected forward hDecl=0x%x<>0x%x', [V, FAddrs.Count + 1]);
     FAddrs.Add(Nil); //This way it won't interfere with FhNextAddr
@@ -2237,7 +2245,9 @@ var
   hDef11, hDef12, hDef13, hDef14, hDef15: integer;
   IP2, IP3, Z: integer;
   S: AnsiString;
+  DP: TIncPtr;
   Def: TDCURec;
+  StopInIndex: boolean;
 begin
   Result := -1;
   if (Ver <= VerD7) or (Ver >= verK1) then
@@ -2273,7 +2283,11 @@ begin
             TNameDecl(Def).ConstAddInfoFlags := F;
           if (Ver >= verD2006) and (Ver < verK1) and not (platform in [dcuplIOSEmulator, dcuplIOSDevice, dcuplAndroid]) then
           begin
-            if F and $1000000 <> 0 then
+            //D2009+ changed the F flag semantics (cafInline=$40000, cafBigVal=$80000);
+            //bit $1000000 is no longer followed by an IP index (observed in D11/D13
+            //CAI records like FController with F=$81800000; reading the index there
+            //desynchronized the attribute stream).
+            if (F and $1000000 <> 0) and (Ver < verD2009) then
               IP := ReadUIndex;
           end;
           if IsMSIL then
@@ -2473,6 +2487,14 @@ begin
           hDef2 := ReadUindex;
           V := ReadUindex;
         end;
+      $08:
+        begin
+          //The record contains the procedure calling convention info (observed in D11+ RTL)
+          if (Ver < verD2009) or (Ver >= verK1) then
+            break;
+          V1 := ReadUIndex;
+          S := ReadNDXStr;
+        end;
       $09:
         begin
           Result := ReadUindex;
@@ -2577,6 +2599,19 @@ begin
             SetUnitPackageInfo(Result, S);
       // AddAddrDef(Nil); //Seems that it's required to reserve addr index
         end;
+      $0E:
+        begin
+          //Delphi 13: null-terminated unit name of the declaration source
+          if (Ver < verD_D13) or (Ver >= verK1) then
+            break;
+          S := '';
+          repeat
+            V := ReadByte;
+            if V = 0 then
+              break;
+            S := S + AnsiChar(V);
+          until false;
+        end;
       $10:
         begin
           if (Ver < verD2009) or (Ver >= verK1) then
@@ -2635,6 +2670,118 @@ begin
           V := ReadUIndex;
           V1 := ReadUIndex;
           V2 := ReadUIndex;
+        end;
+$17:
+        begin
+          //Delphi 13: new const add info record (observed in test units and
+          //RTL). Layout: V1, V2, then a varying stream of indexes and optional
+          //type names up to the stop tag.
+          //Three name/string encodings seen (prefix byte P even):
+          //  shr1+term: name = P shr 1 bytes total, the last byte is $10 and
+          //    the preceding ones are printable ("System::WideString").
+          //  exact: name = exactly P printable bytes (e.g. "(System::ShortString").
+          //  shr1 plain: string = P shr 1 printable bytes with no $10, followed
+          //    right away by the stop tag (e.g. "defined(CPUX86) or !Defined(CPUX64)").
+          //The index stream ends when a clean stop tag is found, or when an
+          //index includes a $FF byte: the encoder marks the last index with
+          //an $FF as its high byte (e.g. ".. 51 FF").
+          if (Ver < verD_D13) or (Ver >= verK1) then
+            break;
+          V1 := ReadUIndex;
+          V2 := ReadUIndex;
+          StopInIndex := false;
+          while true do
+          begin
+            if Byte(ScSt.CurPos^) = caiStop then
+              break;
+            V := Byte(ScSt.CurPos^);
+            if (V and 1) = 0 then
+            begin
+              Len := V shr 1;
+              DP := TIncPtr(ScSt.CurPos)+1;
+              if (Len >= 2) and (TIncPtr(DP)+Len <= ScSt.EndPos) and
+                 (Byte((DP+Len-1)^) = $10) then
+              begin
+                for i := 0 to Integer(Len)-2 do
+                  if (Byte((DP+i)^) < $20) or (Byte((DP+i)^) > $7E) then
+                    Len := 0; //not a printable name
+                if Len > 0 then
+                begin
+                  Inc(ScSt.CurPos);
+                  SetLength(S, Len);
+                  ReadBlock(S[1], Len);
+                  SetLength(S, Len-1); //drop the $10 terminator byte
+                  continue;
+                end;
+                Len := V shr 1;
+              end;
+              if (Len = V shr 1) and (Len >= 2) and
+                 (TIncPtr(DP)+Len < ScSt.EndPos) and
+                 (Byte((DP+Len)^) = caiStop) then
+              begin
+                for i := 0 to Integer(Len)-1 do
+                  if (Byte((DP+i)^) < $20) or (Byte((DP+i)^) > $7E) then
+                    Len := 0; //not a printable string
+                if Len > 0 then
+                begin
+                  Inc(ScSt.CurPos);
+                  SetLength(S, Len);
+                  ReadBlock(S[1], Len);
+                  continue;
+                end;
+              end;
+              Len := V;
+              if (Len >= 2) and (TIncPtr(DP)+Len <= ScSt.EndPos) then
+              begin
+                for i := 0 to Integer(Len)-1 do
+                  if (Byte((DP+i)^) < $20) or (Byte((DP+i)^) > $7E) then
+                    Len := 0; //not a printable name
+                if Len > 0 then
+                begin
+                  Inc(ScSt.CurPos);
+                  SetLength(S, Len);
+                  ReadBlock(S[1], Len);
+                  continue;
+                end;
+              end;
+            end;
+            if V = $11 then
+            begin
+              //D12/D13: an embedded $11-style tail: a pair of address refs
+              //follow (mirroring the D11 $11 record, which RefAddrDefs both).
+              //The first of the two copies the record's own leading index,
+              //the second is the slot reserved for the following proc
+              //(it matches the drProcAddInfo value emitted before that proc).
+              Inc(ScSt.CurPos);
+              V1 := ReadUIndex;
+              RefAddrDef(V1);
+              V2 := ReadUIndex;
+              RefAddrDef(V2);
+              break; //the byte that follows the refs is the stop tag (FF)
+            end;
+            DP := ScSt.CurPos;
+            V := ReadUIndex;
+            //an index that includes the stop tag byte is the last one
+            i := 0;
+            while TIncPtr(DP)+i < ScSt.CurPos do
+            begin
+              if Byte((TIncPtr(DP)+i)^) = caiStop then
+                break;
+              Inc(i);
+            end;
+            if TIncPtr(DP)+i < ScSt.CurPos then
+            begin
+              StopInIndex := true;
+              break;
+            end;
+          end;
+if StopInIndex then
+          begin
+            //the stop tag was part of the last index: the record is complete,
+            //next bytes belong to the enclosing component stream
+            Tag := caiStop;
+            break;
+          end;
         end;
     else
       break;
@@ -2957,6 +3104,13 @@ begin
           end;
         drEmbeddedProcEnd:
           begin
+            if (LK = dlMain) and (Ver >= verD_D13) and (Ver < verK1) then
+            begin
+              //D13: a redundant marker before drProcAddInfo of the next proc
+              //(the addr slot was already reserved by the preceding $11/$17 CAI)
+              Tag := ReadTag;
+              Continue;
+            end;
             if not ((LK = dlArgsT) and (Ver > verD3) or (LK = dlArgs) and (Ver > verD3{verD5 was observed, but may be in prev ver. too})) then
               Break; {Temp. - this tag can mark the const definition used as an
            interface arg. default value and also as proc. arg. default value}
@@ -3018,6 +3172,19 @@ begin
           begin
             if (Ver >= verD8) and (Ver < verK1) then
               ReadULong;
+          end;
+        drStop1:
+          begin
+            //Delphi 13: a marker (0x63) precedes procs with const add info
+            //in the main decl list; elsewhere it ends a nested list (break).
+            if (Ver >= verD_D13) and (Ver < verK1) and (LK = dlMain) then
+            begin
+              FAddrs.Add(Nil); //D13: the marker occupies an addr slot
+              Tag := ReadTag;
+              Continue;
+            end
+            else
+              Break;
           end;
  //        drVoid: Decl := TAtDecl.Create;{May be end of interface}
         drStrConstRec:
