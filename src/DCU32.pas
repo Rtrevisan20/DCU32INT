@@ -87,6 +87,7 @@ type
 { Internal unit types }
 const
   drStop = 0;
+  drInfo08 = $08; //TEMP: unknown tag seen at D13 dlMain tail
   drStop_a = $61{'a'}; //Last Tag in all files
   drAssemblyData = $62{'b'}; //The data structure was found in .<PackageName> units of D8 packages
   drStop1 = $63{'c'};
@@ -220,9 +221,12 @@ const
   arPascal = $82;
   arStdCall = $83;
   arSafeCall = $84;
+  arRegister = $85;
+  arFastCall = $86;
+  arNormal = $89; //D13: emitted in dlMain before a member (call-kind atom)
 
 type
-  TProcCallTag = arCDecl..arSafeCall;
+  TProcCallTag = arCDecl..arFastCall;
 
 type
 { Auxiliary data types }
@@ -2760,7 +2764,17 @@ $17:
               break; //the byte that follows the refs is the stop tag (FF)
             end;
             DP := ScSt.CurPos;
-            V := ReadUIndex;
+            if (Ver >= verD_D13) and ((Byte(DP^) and $0F) = $0F) then
+            begin
+              //D13: a type-15 index in a $17 stream carries no 32-bit high
+              //extension (e.g. "6F 07 00 20 08" = 0x08200007, next byte is FF)
+              Inc(ScSt.CurPos);
+              V := LongInt(ScSt.CurPos^);
+              Inc(ScSt.CurPos,4);
+              NDXHi := 0;
+            end
+            else
+              V := ReadUIndex;
             //an index that includes the stop tag byte is the last one
             i := 0;
             while TIncPtr(DP)+i < ScSt.CurPos do
@@ -3164,8 +3178,12 @@ begin
             Decl := TDispPropDecl.Create(LK)
           else
             Decl := TPropDecl.Create;
-        arCDecl, arPascal, arStdCall, arSafeCall: {Skip it}
+        arCDecl, arPascal, arStdCall, arSafeCall, arRegister, arFastCall, arNormal: {Skip it}
           ;
+        drInfo08:
+          begin
+            //TEMP: D13 dlMain tag 0x08 (part of the class-tail const group)
+          end;
         arSetDeft:
           Decl := TSetDeftInfo.Create; //ReadULong{Skip it};
         drStop2:
@@ -3331,6 +3349,16 @@ begin
             ReadByte;
             ReadUIndex;
           end;
+        drAssemblyInfo:
+          begin
+            //D13: emitted in dlMain as the tail of a template-call/method-impl
+            //group (win32). Observed as "9D <ByteLen> <Len bytes>" (e.g. "9D 0C"
+            //followed by 12 bytes, then the next 5A-TA6).
+            if not ((Ver >= verD_D13) and (Ver < verK1) and (LK = dlMain)) then
+              break;
+            V := ReadByte;
+            SkipBlock(V);
+          end;
         drCLine:
           begin //Lines of C text, just ignore them by now
             if not ((Ver >= verD2006) and (Ver < verK1)) then
@@ -3381,6 +3409,9 @@ begin
             if not ((Ver >= verD2009) and (Ver < verK1)) then
               break;
             Rec := TA7Def.Create;
+            if (Ver >= verD_D13) and (Ver < verK1) and (LK = dlMain) and
+               (Byte(Pointer(ScSt.CurPos)^) = 0) then
+              ReadByte; //D13: the A7 aux record is terminated by a stop tag
           end;
         drA8Info:
           begin
