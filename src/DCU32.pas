@@ -2883,6 +2883,13 @@ if Ver >= verD2009 then
           RefAddrDef(V1); //Seems that it's required to reserve addr index
           S := ReadNDXStr; //The name of the const data/struct source (e.g. "TList.Sort")
         end;
+      $9C:
+        begin
+          //Delphi 11/13: drConstAddInfo appearing nested (shouldn't be unexpected)
+          if (Ver < verD2009) or (Ver >= verK1) then
+            break;
+          //Structure unknown - skip gracefully
+        end;
       $20:
         begin
           //Delphi 13: observed in System.Generics.Collections (SGC) - skip
@@ -3457,13 +3464,24 @@ $07:
             else
               Break;
           end;
-        drStop:
+drStop:
           begin
             //Delphi 13: nested lists and main lists can end with plain drStop (0)
             if (Ver >= verD_D13) and (Ver < verK1) then
             begin
               Tag := drStop1; //Normalize to standard stop tag
               Break;
+            end
+            else
+              Break;
+          end;
+$3D, $3C, $8C, $F1, $95, $FF, $15, $B5:
+          begin
+            //Delphi 13: these tags appear in nested lists but were misinterpreted as stop tags
+            //They are valid tags - skip gracefully for D13
+            if (Ver >= verD_D13) and (Ver < verK1) then
+            begin
+              //Skip this tag and continue parsing
             end
             else
               Break;
@@ -3557,7 +3575,6 @@ $07:
           TInterfaceDef.Create;
         drVoid:
           TVoidDef.Create; {May be end of interface}
-      {----------------------------------------------------}
         drCBlock:
           begin
             if LK <> dlMain then
