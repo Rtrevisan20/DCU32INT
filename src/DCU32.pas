@@ -2881,6 +2881,22 @@ if Ver >= verD2009 then
           RefAddrDef(V1); //Seems that it's required to reserve addr index
           S := ReadNDXStr; //The name of the const data/struct source (e.g. "TList.Sort")
         end;
+      $20:
+        begin
+          //Delphi 13: observed in System.Generics.Collections (SGC) - skip
+          if (Ver < verD_D13) or (Ver >= verK1) then
+            break;
+          //Structure not fully known - skip this tag
+        end;
+      $00:
+        begin
+          //Delphi 11/13: observed in SGC as stop-like tag in const add info
+          if (Ver < verD2009) or (Ver >= verK1) then
+            break;
+          //Treat as stop tag for this record
+          Tag := caiStop;
+          break;
+        end;
 $17:
         begin
           //Delphi 13: new const add info record (observed in test units and
@@ -3232,6 +3248,10 @@ var
   V, X: TNDX;
   Tag1: TDCURecTag;
   EmbEndCnt: Integer;
+  LoopSafety: Integer;
+{$IFDEF DBGTRACEPROC}
+  X2: System.TextFile;
+{$ENDIF}
 begin
   Result := Nil;
   DeclEnd := @Result;
@@ -3239,8 +3259,26 @@ begin
   LastProcDecl := Nil;
   //FhNextAddr := 0;
   EmbEndCnt := 0; //For MSIL and D2009up
+{$IFDEF DBGTRACEPROC}
+  begin
+    i := LongInt(ScSt.CurPos-ScSt.StartPos);
+    if (Ord(LK) <> 999) then begin
+      AssignFile(X2, 'C:\Users\renat\AppData\Local\Temp\opencode\decllist_entry.txt');
+      if FileExists('C:\Users\renat\AppData\Local\Temp\opencode\decllist_entry.txt') then
+        Append(X2)
+      else
+        Rewrite(X2);
+      Writeln(X2, SysUtils.Format('LK=%d pos=%X tag=%X', [Ord(LK), LongInt(ScSt.CurPos-ScSt.StartPos), Byte(Tag)]));
+      CloseFile(X2);
+    end;
+  end;
+{$ENDIF}
+  LoopSafety := 0;
   while true do
   begin
+    Inc(LoopSafety);
+    if LoopSafety > 1000000 then
+      DCUError('ReadDeclList loop safety limit exceeded');
     Tag1 := FixTag(Tag);
     Decl := Nil;
     Rec := Nil;
@@ -3389,6 +3427,27 @@ begin
         drInfo08:
           begin
             //TEMP: D13 dlMain tag 0x08 (part of the class-tail const group)
+          end;
+$07:
+          begin
+            //Delphi 13: observed in class fields lists (System.SysUtils) - skip
+            if (Ver >= verD_D13) and (Ver < verK1) then
+            begin
+              //Skip this tag, read next
+            end
+            else
+              Break;
+          end;
+        drStop:
+          begin
+            //Delphi 13: nested lists can end with plain drStop (0)
+            if (Ver >= verD_D13) and (Ver < verK1) and (LK <> dlMain) then
+            begin
+              Tag := drStop1; //Normalize to standard stop tag
+              Break;
+            end
+            else
+              Break;
           end;
         arSetDeft:
           Decl := TSetDeftInfo.Create; //ReadULong{Skip it};

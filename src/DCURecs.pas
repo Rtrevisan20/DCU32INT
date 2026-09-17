@@ -642,7 +642,7 @@ TEnumDef = class(TRangeBaseDef)
   Ndx: TNDX;
   CStart: TConstDecl;
   NameTbl: TList;
-  HasEq: Boolean; //Some const was defined by С=Сprev and not included into NameTbl
+  HasEq: Boolean; //Some const was defined by пїЅ=пїЅprev and not included into NameTbl
   constructor Create;
   destructor Destroy; override;
   function ShowValue(DP: Pointer; DS: Cardinal): integer {Size used}; override;
@@ -2448,7 +2448,7 @@ begin
         //parent class unit
     end ;
     if (CurUnit.Ver>=verD2009)and(CurUnit.Ver<verK1)and(GetTag=arMethod) then begin
-      //!!!Запомнить и отобразить
+      //!!!пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
       nSkip := 0;
       if CurUnit.Ver>=verD2010 then begin
         Inc(nSkip);
@@ -3151,10 +3151,25 @@ var
   ArgP: PTDCURec{^TNameDecl};
   Loc: TDCURec{TNameDecl};
   X: TNDX;
+  B00: LongInt;
+{$IFDEF DBGTRACEPROC}
+  SavePos: LongInt;
+  F: System.TextFile;
+  P0: TIncPtr;
+{$ENDIF}
 begin
   inherited Create(NoInf);
   Ofs := Cardinal(-1);
- {---}
+ {$IFDEF DBGTRACEPROC}P0 := ScSt.CurPos; B00 := LongInt(ScSt.CurPos-ScSt.StartPos);
+      AssignFile(F, 'C:\Users\renat\AppData\Local\Temp\opencode\tproc_entry.txt');
+      if FileExists('C:\Users\renat\AppData\Local\Temp\opencode\tproc_entry.txt') then
+        Append(F)
+      else
+        Rewrite(F);
+      Writeln(F, SysUtils.Format('p0=%X tag=%X', [B00, Byte(Tag)]));
+      CloseFile(F);
+ {$ENDIF}
+  {---}
   Embedded := AnEmbedded;
   NoName := IsUnnamed;
   MethodKind := mkProc;
@@ -3164,13 +3179,15 @@ begin
   if (CurUnit.Ver>=verD_XE)and(CurUnit.Ver<verK1) then
     X := ReadByte;//ReadUIndex; - it was detected in verD_XE2 and Ok for verD_XE
   if not NoName then begin
-    if CurUnit.Ver>verD2 then
+    if CurUnit.Ver>verD2 then begin
+      B00 := LongInt(ScSt.CurPos-ScSt.StartPos);
       VProc := ReadUIndex;
+    end;
     hDTRes := ReadUIndex;
    (*Perhaps it's not required
-    if (CurUnit.Ver>=verD_XE)and(CurUnit.Ver<verK1)and(VProc=$4F{may be some flag important})and(F1 and $40<>0) then
-      Exit;
-    *)
+     if (CurUnit.Ver>=verD_XE)and(CurUnit.Ver<verK1)and(VProc=$4F{may be some flag important})and(F1 and $40<>0) then
+       Exit;
+     *)
     if (CurUnit.Ver>verD7)and(CurUnit.Ver<verK1) then
       hClass := ReadUIndex;
     Tag := ReadTag;
@@ -3192,6 +3209,19 @@ begin
         raise;
       end ;
     end ;
+ {$IFDEF DBGTRACEPROC}
+    begin
+      SavePos := LongInt(ScSt.CurPos-ScSt.StartPos);
+      AssignFile(F, 'C:\Users\renat\AppData\Local\Temp\opencode\tproc_trace.txt');
+      if FileExists('C:\Users\renat\AppData\Local\Temp\opencode\tproc_trace.txt') then
+        Append(F)
+      else
+        Rewrite(F);
+      Writeln(F, SysUtils.Format('p0=%X b0pos=%X end=%X b0=%d sz=%d x=%d vproc=%d hdt=%d tag=%X call=%d',
+        [LongInt(P0-ScSt.StartPos), B00, SavePos, B0, Sz, X, VProc, hDTRes, Byte(Tag), Ord(CallKind)]));
+      CloseFile(F);
+    end;
+ {$ENDIF}
     if Tag<>drStop1 then
       TagError('Stop Tag');
     ArgP := @Args;
@@ -5099,7 +5129,7 @@ begin
           B := ReadByte;
           MName := ReadName;
           N := ReadUIndex;
-          hMember := ReadUIndex; //!!!Не факт, что hMember
+          hMember := ReadUIndex; //!!!пїЅпїЅ пїЅпїЅпїЅпїЅ, пїЅпїЅпїЅ hMember
         end ;
       end ;
     end ;
