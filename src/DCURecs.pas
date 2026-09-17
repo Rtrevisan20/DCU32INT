@@ -6193,6 +6193,8 @@ begin
   for i:=0 to Cnt-1 do
     Args^[i] := ReadUIndex;
   hDTFull := ReadUIndex;
+  if (CurUnit.Ver >= verD_D13) and (CurUnit.Ver < verK1) then
+    ReadUIndex; //D13: trailing value after each template call in dlMain
   //!!!FixDTName;
 end ;
 

@@ -1200,7 +1200,19 @@ procedure TUnit.RefAddrDef(V: integer);
 {This procedure is used for addrs, which may be forward references to the objects,
 which don't yet exist. To fill the empty slot the drProcAddInfo tag is used after
 creation of the object. }
+{$IFDEF D13DBG}
+var
+  _RF: TextFile;
+{$ENDIF}
 begin
+  {$IFDEF D13DBG}
+  begin
+    AssignFile(_RF, 'refdbg.txt');
+    if FileExists('refdbg.txt') then Append(_RF) else Rewrite(_RF);
+    WriteLn(_RF, Format('REFADD Via=%d Off=0x%X Count=%d FAddrs=%s', [V, NativeUInt(ScSt.CurPos)-NativeUInt(ScSt.StartPos), FAddrs.Count, ExtractFileName(CurUnit.FileName)]));
+    CloseFile(_RF);
+  end;
+  {$ENDIF}
   if V > FAddrs.Count then
   begin
     //Delphi 13 writes forward refs that can jump several slots ahead:
@@ -2252,6 +2264,26 @@ var
   DP: TIncPtr;
   Def: TDCURec;
   StopInIndex: boolean;
+  CTag: byte;
+  StOrig, StBeforeV, StChk, StEnd: TScanState;
+  StLF2: array[1..64] of TScanState;
+  LFCnt, K: integer;
+  TailOK: boolean;
+{$IFDEF D13DBG}
+  _dbgF: TextFile;
+  _dbgOff: NativeUInt;
+
+  function DbgHex(P: Pointer; N: Integer): AnsiString;
+  var
+    i: Integer;
+    Q: PAnsiChar;
+  begin
+    Result := '';
+    Q := PAnsiChar(P);
+    for i := 0 to N - 1 do
+      Result := Result + AnsiString(Format('%02X ', [Ord(Q[i])]));
+  end;
+{$ENDIF}
 begin
   Result := -1;
   if (Ver <= VerD7) or (Ver >= verK1) then
@@ -2277,6 +2309,15 @@ begin
     Tag := ReadByte;
     if Tag >= caiStop then
       break; //check it before case to skip the tags for the higher versions
+    {$IFDEF D13DBG}
+    begin
+      AssignFile(_dbgF, 'tagdbg.txt');
+      if FileExists('tagdbg.txt') then Append(_dbgF) else Rewrite(_dbgF);
+      _dbgOff := NativeUInt(ScSt.CurPos) - NativeUInt(ScSt.StartPos);
+      WriteLn(_dbgF, Format('TAG Ver=%d Off=0x%X ABS=0x%X Start=0x%X Sz=%d FSz=%d F=%s RAW=%s Tag=0x%X', [Ver, _dbgOff, NativeUInt(ScSt.CurPos), NativeUInt(ScSt.StartPos), NativeUInt(ScSt.EndPos)-NativeUInt(ScSt.StartPos), CurUnit.FMemSize, CurUnit.FileName, DbgHex(Pointer(ScSt.CurPos), 6), Tag]));
+      CloseFile(_dbgF);
+    end;
+    {$ENDIF}
     case Tag of
       $01:
         begin
@@ -2352,8 +2393,17 @@ begin
                 ReadUIndex;
                 ReadUIndex;
               end;
-              Len := ReadUIndex;
-              SkipBlock(Len * SizeOf(Byte));
+Len := ReadUIndex;
+               {$IFDEF D13DBG}
+               begin
+                 AssignFile(_dbgF, 'lfdbg.txt');
+                 if FileExists('lfdbg.txt') then Append(_dbgF) else Rewrite(_dbgF);
+                 _dbgOff := NativeUInt(ScSt.CurPos) - NativeUInt(ScSt.StartPos);
+                 WriteLn(_dbgF, Format('CAIF L1 Off=0x%X F=0x%X Len=%d F=%s', [_dbgOff, F, Len, ExtractFileName(CurUnit.FileName)]));
+                 CloseFile(_dbgF);
+               end;
+               {$ENDIF}
+               SkipBlock(Len * SizeOf(Byte));
               for i := 1 to 5 do
                 ReadUIndex;
               if (CurUnit.Ver >= verD_XE2) and (CurUnit.Ver < verK1) then
@@ -2361,13 +2411,22 @@ begin
               V := ReadUIndex;
            {if V<>2 then
              DCUError('V2<>2 in TConstAddInfoRec,Tag=1');}
-              Len := ReadUIndex;
-              if Ver >= verD2009 then
-              begin
-                ReadUIndex;
-                ReadUIndex;
-                Len1 := ReadUIndex;
-                SkipBlock(Len1 * SizeOf(LongInt));
+Len := ReadUIndex;
+               if Ver >= verD2009 then
+               begin
+                 ReadUIndex;
+                 ReadUIndex;
+                 Len1 := ReadUIndex;
+                 {$IFDEF D13DBG}
+                 begin
+                   AssignFile(_dbgF, 'lfdbg.txt');
+                   if FileExists('lfdbg.txt') then Append(_dbgF) else Rewrite(_dbgF);
+                   _dbgOff := NativeUInt(ScSt.CurPos) - NativeUInt(ScSt.StartPos);
+                   WriteLn(_dbgF, Format('CAIF L2 Off=0x%X Len=%d Len1=%d F=%s', [_dbgOff, Len, Len1, ExtractFileName(CurUnit.FileName)]));
+                   CloseFile(_dbgF);
+                 end;
+                 {$ENDIF}
+                 SkipBlock(Len1 * SizeOf(LongInt));
               end;
               for i := 1 to Len do
               begin
@@ -2391,9 +2450,25 @@ begin
                   ReadUIndex;
               end;
               Len := ReadUIndex;
+              if Len > 64 then
+                LFCnt := 64
+              else
+                LFCnt := Len;
               for i := 1 to Len do
               begin
+                StBeforeV := ScSt;
+                if i <= 64 then
+                  StLF2[i] := StBeforeV;
                 V := ReadUIndex;
+                {$IFDEF D13DBG}
+                begin
+                  AssignFile(_dbgF, 'lfdbg.txt');
+                  if FileExists('lfdbg.txt') then Append(_dbgF) else Rewrite(_dbgF);
+                  _dbgOff := NativeUInt(ScSt.CurPos) - NativeUInt(ScSt.StartPos);
+                  WriteLn(_dbgF, Format('ITER Ver=%d Off=0x%X V=%d Len=%d i=%d hDef1=%d F=%s', [Ver, _dbgOff, V, Len, i, hDef1, ExtractFileName(CurUnit.FileName)]));
+                  CloseFile(_dbgF);
+                end;
+                {$ENDIF}
              {if V<>4 then
                DCUError('V4<>4 in TConstAddInfoRec,Tag=1,D2');}
                 if Ver >= verD2009 then
@@ -2414,40 +2489,163 @@ begin
                       V := 2;
                     5:
                       V := 4;
-                    6:
-                      V := 1;
-                  else
-                    DCUErrorFmt('Unexpected TConstAddInfo.1 LF value: %d', [V]);
-                  end;
+6:
+                       V := 1;
+                   else
+                     if (Ver < verK1) and (V = 7) then
+                       V := 5 //D11+ adds LF variant 7 (5 following indexes)
+                     else
+                       DCUErrorFmt('Unexpected TConstAddInfo.1 LF value: %d', [V]);
+                   end;
                   for j := 1 to V do
                     ReadUIndex;
                 end
+else
+                  V := ReadUIndex;
+              end;
+            if (Ver >= verD2009) and (Len > 0) then
+            begin
+              //D2009+ const records for generic methods with open-array
+              //(array of T) parameters sometimes encode the units header as
+              //one or more trailing pseudo LF2 entries whose first V byte equals
+              //the units count (e.g. TG10/TG11 count=1 -> V==1, TG2/5/6 count=2
+              //-> V==2, TG8 two-array -> two pseudo entries ending in V==2).
+              //Validate the units/D2 area from the position after all entries;
+              //check whether the next byte could be a valid CAI continuation tag
+              //or the stop tag. If not, try rewinding 1..4 entries back and read
+              //the units header from that position instead.
+              StOrig := ScSt;
+              TailOK := false;
+              for K := 0 to 4 do
+              begin
+                if K > 0 then
+                begin
+                  if K > LFCnt then
+                    break;
+                  StChk := StLF2[LFCnt - K + 1];
+                end
                 else
-                  V := ReadUIndex;
-              end;
-              Len := ReadUIndex; //Number of units defs from which are used in this def
-              for i := 1 to Len do
-              begin
-                hUnit := ReadUIndex;
-                Len1 := ReadUIndex;
-                for j := 1 to Len1 do
-                begin
-                  V := ReadUIndex;
-                  if hUnit <> 0 then
-                    Continue; //Import from another unit - don't care
-                  RefAddrDef(V);
+                  StChk := StOrig;
+                ScSt := StChk;
+                try
+                  Len := ReadUIndex;
+                  if (Len <> 0) or (K = 0) then
+                  begin
+                    //Mirror the main units parse below (it runs the D2/D2009/cafBigVal
+                    //sections unconditionally, even when the units count is 0), so the
+                    //tail check only rejects positions the real parser would reject.
+                    if Len > 0 then
+                    begin
+                      for i := 1 to Len do
+                      begin
+                        hUnit := ReadUIndex;
+                        Len1 := ReadUIndex;
+                        for j := 1 to Len1 do
+                          ReadUIndex;
+                      end;
+                    end;
+                    if Ver >= verD2006 then
+                    begin
+                      Len := ReadUIndex;
+                      for i := 1 to Len do
+                        ReadUIndex;
+                      if Ver >= verD2009 then
+                      begin
+                        ReadUIndex;
+                        ReadUIndex;
+                        ReadUIndex;
+                      end;
+                    end;
+                    if (Ver >= verD2005) and (F and cafBigVal <> 0) then
+                      ReadUIndex;
+                    StEnd := ScSt;
+                    if TIncPtr(StEnd.CurPos) < TIncPtr(StEnd.EndPos) then
+                    begin
+                      CTag := Byte(StEnd.CurPos^);
+                      if (CTag = caiStop) or
+                         ((CTag < caiStop) and
+                          (CTag in [$01,$04,$06,$07,$08,$09,$0A,$0C,$0D,$0E,
+                                    $10,$11,$12,$13,$14,$15,$16,$17])) then
+                        TailOK := true;
+                    end;
+                  end;
+                except
                 end;
+                ScSt := StChk;
+                if TailOK then
+                  break;
               end;
-              if Ver >= verD2006 then
+              if not TailOK then
+                ScSt := StOrig;
+              {$IFDEF D13DBG}
               begin
-                Len := ReadUIndex;
-                for i := 1 to Len do
-                  ReadUIndex;
-                if Ver >= verD2009 then
+                AssignFile(_dbgF, 'lfdbg.txt');
+                if FileExists('lfdbg.txt') then Append(_dbgF) else Rewrite(_dbgF);
+                _dbgOff := NativeUInt(ScSt.CurPos) - NativeUInt(ScSt.StartPos);
+                WriteLn(_dbgF, Format('TAIL-DECIDE K=%d TailOK=%d ScStNow=0x%X F=%s', [K, Ord(TailOK), _dbgOff, ExtractFileName(CurUnit.FileName)]));
+                CloseFile(_dbgF);
+              end;
+              {$ENDIF}
+            end;
+            Len := ReadUIndex; //Number of units defs from which are used in this def
+for i := 1 to Len do
                 begin
-                  ReadUIndex;
-                  V := ReadUIndex;
-                  RefAddrDef(V); //AppMethod: System.Threading
+                  {$IFDEF D13DBG}
+                  begin
+                    AssignFile(_dbgF, 'lfdbg.txt');
+                    if FileExists('lfdbg.txt') then Append(_dbgF) else Rewrite(_dbgF);
+                    _dbgOff := NativeUInt(ScSt.CurPos) - NativeUInt(ScSt.StartPos);
+                    WriteLn(_dbgF, Format('UD-ITER-START Off=0x%X F=%s', [_dbgOff, ExtractFileName(CurUnit.FileName)]));
+                    CloseFile(_dbgF);
+                  end;
+                  {$ENDIF}
+                  hUnit := ReadUIndex;
+                  Len1 := ReadUIndex;
+                 {$IFDEF D13DBG}
+                 begin
+                   AssignFile(_dbgF, 'lfdbg.txt');
+                   if FileExists('lfdbg.txt') then Append(_dbgF) else Rewrite(_dbgF);
+                   _dbgOff := NativeUInt(ScSt.CurPos) - NativeUInt(ScSt.StartPos);
+                   WriteLn(_dbgF, Format('UNITDEFS Off=0x%X Len=%d i=%d hUnit=%d Len1=%d F=%s', [_dbgOff, Len, i, hUnit, Len1, ExtractFileName(CurUnit.FileName)]));
+                   CloseFile(_dbgF);
+                 end;
+                 {$ENDIF}
+                 for j := 1 to Len1 do
+                 begin
+                   V := ReadUIndex;
+                   if hUnit <> 0 then
+                     Continue; //Import from another unit - don't care
+                   RefAddrDef(V);
+                 end;
+               end;
+               if Ver >= verD2006 then
+               begin
+                 Len := ReadUIndex;
+                 {$IFDEF D13DBG}
+                 begin
+                   AssignFile(_dbgF, 'lfdbg.txt');
+                   if FileExists('lfdbg.txt') then Append(_dbgF) else Rewrite(_dbgF);
+                   _dbgOff := NativeUInt(ScSt.CurPos) - NativeUInt(ScSt.StartPos);
+                   WriteLn(_dbgF, Format('D2BLOCK Off=0x%X Len=%d F=%s', [_dbgOff, Len, ExtractFileName(CurUnit.FileName)]));
+                   CloseFile(_dbgF);
+                 end;
+                 {$ENDIF}
+                 for i := 1 to Len do
+                   ReadUIndex;
+if Ver >= verD2009 then
+                 begin
+                   ReadUIndex;
+                   V := ReadUIndex;
+                   {$IFDEF D13DBG}
+                   begin
+                     AssignFile(_dbgF, 'lfdbg.txt');
+                     if FileExists('lfdbg.txt') then Append(_dbgF) else Rewrite(_dbgF);
+                     _dbgOff := NativeUInt(ScSt.CurPos) - NativeUInt(ScSt.StartPos);
+                     WriteLn(_dbgF, Format('D2009APP Veditor=%d V=%d Off=0x%X F=%s', [V, V, _dbgOff, ExtractFileName(CurUnit.FileName)]));
+                     CloseFile(_dbgF);
+                   end;
+                   {$ENDIF}
+                   RefAddrDef(V); //AppMethod: System.Threading
                   ReadUIndex;
                 end;
               end;
@@ -2674,6 +2872,14 @@ begin
           V := ReadUIndex;
           V1 := ReadUIndex;
           V2 := ReadUIndex;
+        end;
+      $16:
+        begin
+          if (Ver < verD_D13) or (Ver >= verK1) then
+            break;
+          V1 := ReadUIndex;
+          RefAddrDef(V1); //Seems that it's required to reserve addr index
+          S := ReadNDXStr; //The name of the const data/struct source (e.g. "TList.Sort")
         end;
 $17:
         begin
@@ -3409,7 +3615,7 @@ begin
             if not ((Ver >= verD2009) and (Ver < verK1)) then
               break;
             Rec := TA7Def.Create;
-            if (Ver >= verD_D13) and (Ver < verK1) and (LK = dlMain) and
+            if (Ver >= verD_D13) and (Ver < verK1) and
                (Byte(Pointer(ScSt.CurPos)^) = 0) then
               ReadByte; //D13: the A7 aux record is terminated by a stop tag
           end;
