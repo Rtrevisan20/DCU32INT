@@ -2692,10 +2692,12 @@ if Ver >= verD2009 then
       $08:
         begin
           //The record contains the procedure calling convention info (observed in D11+ RTL)
+          //D13: this record has only UIndex, no string (string belongs to next tag $09)
           if (Ver < verD2009) or (Ver >= verK1) then
             break;
           V1 := ReadUIndex;
-          S := ReadNDXStr;
+          if (Ver < verD_D13) then
+            S := ReadNDXStr;
         end;
       $09:
         begin
@@ -3242,8 +3244,8 @@ var
   DeclEnd, EmbLEnd: PTDCURec{PTNameDecl};
   Decl, EmbedBuf, Rec: TDCURec;
   LastProcDecl: TNameDecl;
- // Embedded: TNameDecl;
- // B: Byte;
+  // Embedded: TNameDecl;
+  // B: Byte;
   i{,Cnt}: integer;
   V, X: TNDX;
   Tag1: TDCURecTag;
@@ -3430,10 +3432,11 @@ begin
           end;
 $07:
           begin
-            //Delphi 13: observed in class fields lists (System.SysUtils) - skip
+            //Delphi 13: observed in class fields lists (System.SysUtils) - has data structure
             if (Ver >= verD_D13) and (Ver < verK1) then
             begin
-              //Skip this tag, read next
+              //Structure: UIndex (field attributes/metadata)
+              V := ReadUIndex;
             end
             else
               Break;
