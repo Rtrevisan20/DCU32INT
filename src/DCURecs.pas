@@ -4874,6 +4874,8 @@ begin
   end ;
   if (CurUnit.Ver >= verD_D13) and (Tag = drStop) then
     Tag := drStop1; //D13: nested lists end with a plain stop tag
+  if (CurUnit.Ver >= verD_D13) and (Tag = $B4) then
+    Tag := drStop1; //D13: nested lists can also end with tag $B4
   if Tag<>drStop1 then
     TagError('Stop Tag');
 end ;
@@ -6018,6 +6020,8 @@ begin
   CurUnit.ReadDeclList(dlA6,Args);
   if (CurUnit.Ver >= verD_D13) and (Tag = drStop) then
     Tag := drStop1; //D13: nested (dlA6) lists end with a plain stop tag
+  if (CurUnit.Ver >= verD_D13) and (Tag = $B4) then
+    Tag := drStop1; //D13: nested (dlA6) lists can also end with tag $B4
   if Tag<>drStop1 then
     TagError('Stop Tag');
 end ;
@@ -6095,6 +6099,8 @@ begin
   CurUnit.ReadDeclList(dlA6,Args);
   if (CurUnit.Ver >= verD_D13) and (Tag = drStop) then
     Tag := drStop1; //D13: nested (dlA6) lists end with a plain stop tag
+  if (CurUnit.Ver >= verD_D13) and (Tag = $B4) then
+    Tag := drStop1; //D13: nested (dlA6) lists can also end with tag $B4
   if Tag<>drStop1 then
     TagError('Stop Tag');
 end ;

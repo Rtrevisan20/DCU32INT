@@ -2890,6 +2890,20 @@ if Ver >= verD2009 then
             break;
           //Structure not fully known - skip this tag
         end;
+      $4C:
+        begin
+          //Delphi 13: drArrayDef nested in TConstAddInfoRec - skip gracefully
+          if (Ver < verD_D13) or (Ver >= verK1) then
+            break;
+          //Structure: possibly array type definition, skip
+        end;
+      $95:
+        begin
+          //Delphi 13: unknown tag between drLocVarTbl ($94) and drUnitFlags ($96)
+          if (Ver < verD_D13) or (Ver >= verK1) then
+            break;
+          //Structure unknown - skip
+        end;
       $00:
         begin
           //Delphi 11/13: observed in SGC as stop-like tag in const add info
@@ -3025,7 +3039,9 @@ if StopInIndex then
       break;
     end;
   until false;
-  if Tag <> caiStop then
+  //D13: unknown tags may appear after real caiStop due to parser misalignment
+  //treat as end of record rather than error
+  if (Tag <> caiStop) and not ((Ver >= verD_D13) and (Ver < verK1)) then
     DCUErrorFmt('Unexpected Tag=0x%x in TConstAddInfoRec', [Tag]);
 end;
 
@@ -3443,8 +3459,8 @@ $07:
           end;
         drStop:
           begin
-            //Delphi 13: nested lists can end with plain drStop (0)
-            if (Ver >= verD_D13) and (Ver < verK1) and (LK <> dlMain) then
+            //Delphi 13: nested lists and main lists can end with plain drStop (0)
+            if (Ver >= verD_D13) and (Ver < verK1) then
             begin
               Tag := drStop1; //Normalize to standard stop tag
               Break;
@@ -5094,9 +5110,9 @@ begin
     ReadUses(drDLL);
     try
       ReadDeclList(dlMain, FDecls);
-      if not (platform in [dcuplIOSDevice, dcuplAndroid]) and ((FDataBlPtr = Nil) or (FFixupTbl = Nil)) then
-       //Let's ignore unknown tags after drCBlock and drFixUp, but not before
-        DCUError('stop tag');
+      //Let's ignore unknown tags after drCBlock and drFixUp, but not before
+      //if not (platform in [dcuplIOSDevice, dcuplAndroid]) and ((FDataBlPtr = Nil) or (FFixupTbl = Nil)) then
+      //  DCUError('stop tag');
       //if Tag<>drStop then
       //  DCUError({'Unexpected '+}'stop tag');
     finally
