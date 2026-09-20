@@ -61,6 +61,9 @@
 __history/
 *.~*
 
+# Pasta de projeto antiga (ferramenta "Delphi dproj Original" não é mais usada)
+Packages/Delphi dproj Original/
+
 # Castalia statistics file (since XE7 Castalia is distributed with Delphi)
 *.stat
 # Lazarus/FPC generated

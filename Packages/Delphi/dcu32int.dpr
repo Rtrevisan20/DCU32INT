@@ -1,51 +1,28 @@
+program dcu32int;
 {$A+,B-,C+,D+,E-,F-,G+,H+,I+,J+,K-,L+,M-,N+,O+,P+,Q-,R-,S-,T-,U-,V+,W-,X+,Y+,Z1}
 {$APPTYPE CONSOLE}
 {$IFDEF FPC}{$MODE DELPHI}{$ENDIF}
 {$IFDEF FPC}{$WARNINGS OFF}{$NOTES OFF}{$ENDIF}
-program dcu32int;
-(*
-The main module of the DCU32INT utility by Alexei Hmelnov.
-----------------------------------------------------------------------------
-E-Mail: alex@icc.ru
-http://hmelnov.icc.ru/DCU/
-----------------------------------------------------------------------------
-
-See the file "readme.md" for more details.
-
-------------------------------------------------------------------------
-                             IMPORTANT NOTE:
-This software is provided 'as-is', without any expressed or implied warranty.
-In no event will the author be held liable for any damages arising from the
-use of this software.
-Permission is granted to anyone to use this software for any purpose,
-including commercial applications, and to alter it and redistribute it
-freely, subject to the following restrictions:
-1. The origin of this software must not be misrepresented, you must not
-   claim that you wrote the original software.
-2. Altered source versions must be plainly marked as such, and must not
-   be misrepresented as being the original software.
-3. This notice may not be removed or altered from any source
-   distribution.
-*)
-//  {$IFNDEF LINUX}Windows,{$ELSE}LinuxFix,{$ENDIF}
-
-uses
-  SysUtils, {$IFDEF UNICODE}
-  AnsiStrings, {$ENDIF}
-  DCU32 in 'DCU32.pas',
-  DCUTbl in 'DCUTbl.pas',
-  DCU_In in 'DCU_In.pas',
-  DCU_Out in 'DCU_Out.pas',
-  FixUp in 'FixUp.pas',
-  DCURecs in 'DCURecs.pas',
-  DasmDefs in 'DasmDefs.pas',
-  DasmCF in 'DasmCF.pas',
-  DCP in 'DCP.pas',
-  DasmX86 in 'DasmX86.pas',
-  DasmMSIL in 'DasmMSIL.pas';
 
 {$IFNDEF FPC}{$R *.res}{$ENDIF}
 {$IFDEF FPC}{$R dcu32int_fpc.res}{$ENDIF}
+
+uses
+  System.SysUtils, {$IFDEF UNICODE}
+  AnsiStrings, {$ENDIF}
+  DasmCF in '..\..\src\DasmCF.pas',
+  DasmDefs in '..\..\src\DasmDefs.pas',
+  DasmMSIL in '..\..\src\DasmMSIL.pas',
+  DAsmUtil in '..\..\src\DAsmUtil.pas',
+  DasmX86 in '..\..\src\DasmX86.pas',
+  DCP in '..\..\src\DCP.pas',
+  DCU_In in '..\..\src\DCU_In.pas',
+  DCU_Out in '..\..\src\DCU_Out.pas',
+  DCU32 in '..\..\src\DCU32.pas',
+  DCURecs in '..\..\src\DCURecs.pas',
+  DCUTbl in '..\..\src\DCUTbl.pas',
+  FixUp in '..\..\src\FixUp.pas',
+  op in '..\..\src\op.pas';
 
 procedure WriteUsage;
 begin
@@ -585,4 +562,3 @@ DecimalSeparator := '.';
   end;
   Halt(ProcessFile(DCUName));
 end.
-

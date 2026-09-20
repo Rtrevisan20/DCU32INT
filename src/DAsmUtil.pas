@@ -461,7 +461,7 @@ var
 begin
   Result := false;
   SExt := S and $1;
-  if not im(BWTbl[(W and 1)and not (SExt){При SExt - используется непоср. байт}])
+  if not im(BWTbl[(W and 1)and not (SExt){пїЅпїЅпїЅ SExt - пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ. пїЅпїЅпїЅпїЅ}])
   then
     Exit;
   if SExt<>0 then
@@ -912,8 +912,8 @@ var
   begin
     if hReg and hPresent=0 then
       Exit;
-    hReg := RegTbl{$IFDEF I64}[hReg and hRegHasRex<>0]{$ENDIF}
-        [(hReg shr hRegSizeShift)and hRegSizeMask]^[hReg and $F];
+    hReg := (RegTbl{$IFDEF I64}[hReg and hRegHasRex<>0]{$ENDIF}
+        [(hReg shr hRegSizeShift)and hRegSizeMask]^[hReg and $F]) and $FF;
     if SS=0 then
       hLastReg := hReg;
     Plus;

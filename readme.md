@@ -192,6 +192,13 @@ Os arquivos `.int` (e `.htm`) são **byte-idênticos** entre os binários gerado
 | Lazarus/FPC | 4.8 | ✅ build do `.lpi` limpo |
 | Paridade de output | — | ✅ `.int` **idêntico** nos 5 DCUs de teste reais do Delphi 11 |
 
+### Avisos na saída do parse
+
+| Aviso | O que é | É problema? | Como sumir |
+|---|---|---|---|
+| `Warning at 0x…: Skipped embedded lists N..M` | Desde o XE, tipos locais de procedures são gravados **fora** da lista da procedure (`RegisterEmbeddedTypes`, `DCU32.pas`). O parser prevê listas embutidas e, ao terminar, se a profundidade atual < máxima registrada, sobram listas não drenadas → `Skipped embedded lists N..M`. O endereço `0x…` **varia conforme o DCU** de entrada. | **Não** — heurística benigna do formato pós-XE; aparece igualmente no build Release. | Não há como nem porquê |
+| `Warning: used unit "SysInit" not found or incorrect - all imported names will be shown with unit names` | Validação dos imports: para cada unit em `uses`, o parser procura a `TUnit` carregada; o `System.dcu` usa `SysInit` (init do RTL) e ela não foi carregada → aviso + nomes importados exibidos como `SysInit.Nome`. | **Só cosmético** — o `.int` sai completo. | Rodar com `-U` apontando o lib do Delphi (ex.: `-U"C:\Program Files (x86)\Embarcadero\Studio\22.0\lib\win32\release"`). O `SysInit.dcu` **existe** no disco; sem path configurado a busca `GetDCUByName` não o encontra. |
+
 > **Nota:** DCUs de Delphi **13 (Studio 37)** ainda **não** são suportados — o magic do 13 (`0x2500034D`) foi identificado, mas as tags novas do formato (ex.: `Unexpected Tag=0x17` em `TConstAddInfoRec`) ainda não foram decodificadas.
 
 ---
