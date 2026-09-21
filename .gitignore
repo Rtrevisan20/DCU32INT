@@ -71,6 +71,9 @@ Packages/Delphi dproj Original/
 
 # Lazarus build artifacts
 *.lps
+
+# Parser output files (.int/.init/.htm)
+*.init
 Compiled/
 backup/
 

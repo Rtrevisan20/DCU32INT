@@ -89,7 +89,6 @@ type
 { Internal unit types }
 const
   drStop = 0;
-  drInfo08 = $08; //TEMP: unknown tag seen at D13 dlMain tail
   drStop_a = $61{'a'}; //Last Tag in all files
   drAssemblyData = $62{'b'}; //The data structure was found in .<PackageName> units of D8 packages
   drStop1 = $63{'c'};
@@ -223,12 +222,9 @@ const
   arPascal = $82;
   arStdCall = $83;
   arSafeCall = $84;
-  arRegister = $85;
-  arFastCall = $86;
-  arNormal = $89; //D13: emitted in dlMain before a member (call-kind atom)
 
 type
-  TProcCallTag = arCDecl..arFastCall;
+  TProcCallTag = arCDecl..arSafeCall;
 
 type
 { Auxiliary data types }
@@ -3446,13 +3442,9 @@ begin
             Decl := TDispPropDecl.Create(LK)
           else
             Decl := TPropDecl.Create;
-        arCDecl, arPascal, arStdCall, arSafeCall, arRegister, arFastCall, arNormal: {Skip it}
+        arCDecl, arPascal, arStdCall, arSafeCall: {Skip it}
           ;
-        drInfo08:
-          begin
-            //TEMP: D13 dlMain tag 0x08 (part of the class-tail const group)
-          end;
-$07:
+        $07:
           begin
             //Delphi 13: observed in class fields lists (System.SysUtils) - has data structure
             if (Ver >= verD_D11) and (Ver < verK1) then
@@ -3648,16 +3640,6 @@ $3D, $3C, $8C, $F1, $95, $FF, $15, $B5:
          else}
             ReadByte;
             ReadUIndex;
-          end;
-        drAssemblyInfo:
-          begin
-            //D13: emitted in dlMain as the tail of a template-call/method-impl
-            //group (win32). Observed as "9D <ByteLen> <Len bytes>" (e.g. "9D 0C"
-            //followed by 12 bytes, then the next 5A-TA6).
-            if not ((Ver >= verD_D11) and (Ver < verK1) and (LK = dlMain)) then
-              break;
-            V := ReadByte;
-            SkipBlock(V);
           end;
         drCLine:
           begin //Lines of C text, just ignore them by now
