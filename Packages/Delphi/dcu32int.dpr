@@ -62,7 +62,7 @@ begin
     + ' -N<Prefix> - No Name Prefix ("%" - Scope char)'#13#10
     + ' -F<FMT> - output format (T - text (default), H-HTML)'#13#10
     + ' -D<Prefix> - Dot Name Prefix ("%" - Scope char)'#13#10
-    + ' -o<File> - Output file'
+    + ' -X<File> - Output file'
     + ' -Q<Query flag> - Query additional information.'#13#10
     + '    F(-) - class fields'#13#10
     + '    V(-) - class virtual methods'#13#10
