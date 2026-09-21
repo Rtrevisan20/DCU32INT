@@ -8,8 +8,8 @@ program dcu32int;
 {$IFDEF FPC}{$R dcu32int_fpc.res}{$ENDIF}
 
 uses
-  System.SysUtils, {$IFDEF UNICODE}
-  AnsiStrings, {$ENDIF}
+  SysUtils,{$IFDEF UNICODE}
+  AnsiStrings,{$ENDIF}
   DasmCF in '..\..\src\DasmCF.pas',
   DasmDefs in '..\..\src\DasmDefs.pas',
   DasmMSIL in '..\..\src\DasmMSIL.pas',

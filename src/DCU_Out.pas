@@ -365,13 +365,15 @@ var
 begin
   MinOfs := Ord(' ');
   Result := BufLen;
-  for i:=BufLen-1 downto 0 do begin
-    Ofs := Ord(Buf[i]);
-    if Ofs<MinOfs then begin
-      MinOfs := Ofs;
-      Result := i;
+  if BufLen > 0 then begin
+    for i:=BufLen-1 downto 0 do begin
+      Ofs := Ord(Buf[i]);
+      if Ofs<MinOfs then begin
+        MinOfs := Ofs;
+        Result := i;
+      end ;
     end ;
-  end ;
+  end;
   if MinOfs<Ord(' ') then
     ResNLOfs := MinOfs
   else
@@ -443,7 +445,7 @@ var
 begin
   SIOfs := 0;
   hSI := 0;
-  if W>0 then begin
+  if (W>0) and (W<=BufLen) then begin
     for i:=0 to W-1 do
      if Buf[i]<' ' then
        Buf[i] := ' ';
@@ -459,7 +461,7 @@ begin
   while (W<BufLen)and(Buf[W]<=' ') do
     Inc(W);
   FlushSI(true{Skip});
-  if W<BufLen then
+  if (W<BufLen) and (W>=0) then
     move(Buf[W],Buf,BufLen-W);
   BufLen := BufLen-W;
   BufNLOfs := ANLOfs;
@@ -1060,7 +1062,9 @@ begin
       if V>=0 then
         Result := {$IFDEF UNICODE}AnsiStrings.{$ENDIF}Format('$%x',[V])
       else
-        Result := {$IFDEF UNICODE}AnsiStrings.{$ENDIF}Format('-$%x',[-V]);
+        //Negate in 64-bit to avoid overflow with {$Q+}
+        //(V=Low(Integer) would make -V overflow)
+        Result := {$IFDEF UNICODE}AnsiStrings.{$ENDIF}Format('-$%x',[LongWord(-Int64(V))]);
       Exit;
     end ;
   end ;

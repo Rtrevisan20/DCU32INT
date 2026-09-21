@@ -1630,7 +1630,7 @@ begin
   {if F and $1<>0 then
     raise Exception.CreateFmt('Flag 1 found: 0x%x',[F]);}
   if not NoInf and(F and $40<>0) then
-    Inf := ReadULong;
+    Inf := LongInt(ReadULong);
   PkgNdx := -1;
   {if CurUnit.FromPackage and(CurUnit.Ver>=verD3) then
     PkgNdx := ReadUIndex;}
@@ -2162,7 +2162,7 @@ begin
   inherited Create;
   hSym := ReadUIndex;
   Index := ReadUIndex;
-  if (CurUnit.Ver >= verD_D13) and (CurUnit.Ver < verK1) then
+  if (CurUnit.Ver >= verD_D12) and (CurUnit.Ver < verK1) then
     ReadByte; //D13: extra byte after each export (always $00 observed)
 end ;
 
@@ -2829,18 +2829,18 @@ var
 begin
   NeedVal := true;
   if CurUnit.Ver>verD4 then begin
-    Kind := ReadUIndex;
+    Kind := Cardinal(ReadUIndex);
     if (Kind>5)or(Kind=5)and not((CurUnit.Ver>=verD2009)and(CurUnit.Ver<verK1)) then
       DCUErrorFmt('Unknown const kind: #%d',[Kind]);
     if (CurUnit.Ver>=verD_XE2)and(CurUnit.Ver<verK1) then
       NeedVal := Kind<>4{Pointer - Nil};
   end ;
-  ValSz := ReadUIndex;
+  ValSz := Cardinal(ReadUIndex);
   if ValSz=0 then begin
     ValPtr := Nil;
     if NeedVal then
       Val := ReadIndex;
-    ValSz := NDXHi;
+    ValSz := Cardinal(NDXHi);
    end
   else begin
     ValPtr := ScSt.CurPos;
@@ -2857,7 +2857,7 @@ var
   MemVal: boolean;
 begin
   if ValPtr=Nil then begin
-    V.Hi := ValSz;
+    V.Hi := LongInt(ValSz);
     V.Lo := Val;
     DP := @V;
     DS := 8;
@@ -2869,7 +2869,7 @@ begin
   MemVal := ValPtr<>Nil;
   if (CurUnit.ShowGlobalTypeValue(hDT,DP,DS,MemVal,Kind{ConstKind})<0)and not MemVal then begin
     CurUnit.ShowTypeName(hDT);
-    NDXHi := V.Hi;
+    NDXHi := LongInt(V.Hi);
     PutSFmt('(%s)',[NDXToStr(V.Lo)]);
   end ;
 end ;
@@ -2923,7 +2923,7 @@ begin
   if TypeNamed then
     PutS('(');
   if ValPtr=Nil then begin
-    NDXHi := ValSz;
+    NDXHi := LongInt(ValSz);
     PutS(NDXToStr(Val));
    end
   else begin
@@ -4073,7 +4073,7 @@ var
   procedure ShowVal(var V: TInt64Rec);
   begin
     if (T=Nil)or(U.ShowTypeValue(T,@V,8,0{ConstKind})<0) then begin
-      NDXHi := V.Hi;
+      NDXHi := LongInt(V.Hi);
       PutS(NDXToStr(V.Lo));
     end ;
   end ;
@@ -4110,7 +4110,7 @@ begin
   Lo := ReadIndex;
   Hi := ReadIndex;
   if (CurUnit.Ver>=verD8)and(CurUnit.Ver<verK1) then
-    B := ReadUIndex
+    B := Byte(ReadUIndex)
   else
     B := ReadByte; //It could be index too, but I'm not sure
 end ;
@@ -4130,7 +4130,7 @@ begin
   Lo := ReadIndex;
   Hi := ReadIndex;
   if (CurUnit.Ver>=verD8)and(CurUnit.Ver<verK1) then
-    B := ReadUIndex
+    B := Byte(ReadUIndex)
   else
     B := ReadByte; //It could be index too, but I'm not sure
 end ;
@@ -4245,7 +4245,17 @@ begin
   inherited Create;
   B := ReadByte;
   if B>Ord(High(TFloatKind)) then
-    DCUErrorFmt('Unknown float kind: %d',[B]);
+  begin
+    //D11/D13: data tables at end of dlMain may contain invalid float kinds;
+    //treat as end-of-list marker rather than error
+    if (CurUnit.Ver >= verD_D11) and (CurUnit.Ver < verK1) then
+    begin
+      Kind := fkDouble; //dummy, won't be used as list ends
+      Exit;
+    end
+    else
+      DCUErrorFmt('Unknown float kind: %d',[B]);
+  end;
   Kind := TFloatKind(B);
   if Sz<>FloatSz[Kind] then
   begin
@@ -4872,9 +4882,9 @@ begin
       raise;
     end ;
   end ;
-  if (CurUnit.Ver >= verD_D13) and (Tag = drStop) then
+  if (CurUnit.Ver >= verD_D12) and (Tag = drStop) then
     Tag := drStop1; //D13: nested lists end with a plain stop tag
-  if (CurUnit.Ver >= verD_D13) and (Tag = $B4) then
+  if (CurUnit.Ver >= verD_D12) and (Tag = $B4) then
     Tag := drStop1; //D13: nested lists can also end with tag $B4
   if Tag<>drStop1 then
     TagError('Stop Tag');
@@ -6018,9 +6028,9 @@ begin
   inherited Create;
   Tag := ReadTag;
   CurUnit.ReadDeclList(dlA6,Args);
-  if (CurUnit.Ver >= verD_D13) and (Tag = drStop) then
+  if (CurUnit.Ver >= verD_D12) and (Tag = drStop) then
     Tag := drStop1; //D13: nested (dlA6) lists end with a plain stop tag
-  if (CurUnit.Ver >= verD_D13) and (Tag = $B4) then
+  if (CurUnit.Ver >= verD_D12) and (Tag = $B4) then
     Tag := drStop1; //D13: nested (dlA6) lists can also end with tag $B4
   if Tag<>drStop1 then
     TagError('Stop Tag');
@@ -6076,7 +6086,7 @@ end ;
 constructor TDelayedImpRec.Create;
 begin
   inherited Create;
-  Inf := ReadULong;
+  Inf := LongInt(ReadULong);
   F := ReadUIndex;
   CurUnit.RefAddrDef(F);
 end ;
@@ -6092,14 +6102,14 @@ end ;
 constructor TORecDecl.Create;
 begin
   inherited Create;
-  DW := ReadULong;
+  DW := LongInt(ReadULong);
   B0 := ReadByte;
   B1 := ReadByte;
   Tag := ReadTag;
   CurUnit.ReadDeclList(dlA6,Args);
-  if (CurUnit.Ver >= verD_D13) and (Tag = drStop) then
+  if (CurUnit.Ver >= verD_D12) and (Tag = drStop) then
     Tag := drStop1; //D13: nested (dlA6) lists end with a plain stop tag
-  if (CurUnit.Ver >= verD_D13) and (Tag = $B4) then
+  if (CurUnit.Ver >= verD_D12) and (Tag = $B4) then
     Tag := drStop1; //D13: nested (dlA6) lists can also end with tag $B4
   if Tag<>drStop1 then
     TagError('Stop Tag');
@@ -6229,7 +6239,7 @@ begin
   for i:=0 to Cnt-1 do
     Args^[i] := ReadUIndex;
   hDTFull := ReadUIndex;
-  if (CurUnit.Ver >= verD_D13) and (CurUnit.Ver < verK1) then
+  if (CurUnit.Ver >= verD_D12) and (CurUnit.Ver < verK1) then
     ReadUIndex; //D13: trailing value after each template call in dlMain
   //!!!FixDTName;
 end ;

@@ -461,6 +461,8 @@ var
   L: LongInt;
 begin
   L := GetUIndex(DP);
+  if L < 0 then
+    L := 0;
   SetLength(Result,L);
   if L>0 then
     System.Move(DP^,Result[1],L*SizeOf(AnsiChar));
@@ -499,14 +501,14 @@ begin
           Result := L shr 4
         else begin
           B[4] := ReadByte;
-          Result := R4.L;
+          Result := LongInt(Cardinal(R4.L));
           if (CurUnit.Ver>3)and(B[0] and $F0<>0) then
-            NDXHi := ReadULong;
+            NDXHi := LongInt(ReadULong);
         end ;
       end ;
     end ;
   end ;
-end ;
+end;
 
 {$IFDEF FPC}
 function SAR(L: LongInt; BitCnt: Byte): LongInt; inline;
@@ -588,9 +590,9 @@ begin
          end
         else begin
           B[4] := ReadByte;
-          Result := R4.L;
+          Result := LongInt(Cardinal(R4.L));
           if (CurUnit.Ver>3)and(B[0] and $F0<>0) then begin
-            NDXHi := ReadULong;
+            NDXHi := LongInt(ReadULong);
             Exit;
           end ;
         end ;
@@ -626,9 +628,11 @@ begin
   if NDXHi=0 then
     Result := {$IFDEF UNICODE}AnsiStrings.{$ENDIF}Format('$%x',[NDXLo])
   else if NDXHi=-1 then
-    Result := {$IFDEF UNICODE}AnsiStrings.{$ENDIF}Format('-$%x',[-NDXLo])
+    //Negate in 64-bit to avoid overflow with {$Q+}
+    //(NDXLo=Low(Integer) would make -NDXLo overflow)
+    Result := {$IFDEF UNICODE}AnsiStrings.{$ENDIF}Format('-$%x',[LongWord(-Int64(NDXLo))])
   else if NDXHi<0 then
-    Result := {$IFDEF UNICODE}AnsiStrings.{$ENDIF}Format('-$%x%8.8x',[-NDXHi-1,-NDXLo])
+    Result := {$IFDEF UNICODE}AnsiStrings.{$ENDIF}Format('-$%x%8.8x',[LongWord(-Int64(NDXHi)-1),LongWord(-Int64(NDXLo))])
   else
     Result := {$IFDEF UNICODE}AnsiStrings.{$ENDIF}Format('$%x%8.8x',[NDXHi,NDXLo])
 end ;
